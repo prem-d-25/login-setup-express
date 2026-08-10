@@ -1,17 +1,50 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { MessageSquare, Search, Plus } from "lucide-react";
+import { pastChatList } from "@/api/chat.api";
 
-export const AnalysisSidebar = ({ 
-  chats, 
-  activeChatId, 
-  onSelectChat, 
-  onNewChat, 
-  searchQuery, 
-  onSearchChange 
+export const AnalysisSidebar = ({
+  chats,
+  activeChatId,
+  onSelectChat,
+  onNewChat,
+  searchQuery,
+  onSearchChange,
+  refreshTrigger
 }) => {
+
+  const [chatList, setChatList] = useState([])
+
+  useEffect(() => {
+    const apiCall = async () => {
+      try {
+        const res = await pastChatList();
+
+        // No data returned
+        if (!res?.data) {
+          setChatList([]);
+          return;
+        }
+
+        // Empty array returned
+        if (Array.isArray(res.data) && res.data.length === 0) {
+          console.log("No chats found");
+          setChatList([]);
+          return;
+        }
+
+        setChatList(res.data);
+      } catch (error) {
+        console.error("Failed to fetch chat list:", error);
+        setChatList([]);
+      }
+    };
+
+    apiCall();
+  }, [refreshTrigger]);
+
   return (
     <aside className="w-full md:w-72 lg:w-80 bg-[#141414] border-r border-white/[0.05] flex flex-col h-full shrink-0 font-sans select-none">
-      
+
       {/* SIDEBAR HEADER TRIGGER */}
       <div className="p-4 border-b border-white/[0.03]">
         <button
@@ -43,37 +76,52 @@ export const AnalysisSidebar = ({
           Recent Scans
         </span>
 
-        {chats.map((chat) => {
-          const isActive = chat.id === activeChatId;
-          return (
-            <button
-              key={chat.id}
-              onClick={() => onSelectChat(chat.id)}
-              className={`w-full text-left p-3.5 rounded-xl transition-all group flex flex-col gap-1.5 focus:outline-none relative ${
-                isActive 
-                  ? "bg-orange-500/5 border border-orange-500/15" 
+        {chatList.length > 0 ? (
+          chatList.map((chat) => {
+            const isActive = chat._id === activeChatId;
+
+            return (
+              <button
+                key={chat._id}
+                onClick={() => onSelectChat(chat._id)}
+                className={`w-full text-left p-3.5 rounded-xl transition-all group flex flex-col gap-1.5 focus:outline-none relative ${isActive
+                  ? "bg-orange-500/5 border border-orange-500/15"
                   : "bg-transparent border border-transparent hover:bg-white/[0.02]"
-              }`}
-            >
-              {/* Top border active marker line indicator */}
-              {isActive && (
-                <div className="absolute left-0 top-3 bottom-3 w-[2px] bg-orange-500 rounded-full" />
-              )}
-              
-              <div className="flex items-start gap-2.5 overflow-hidden">
-                <MessageSquare className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isActive ? "text-orange-500" : "text-gray-500 group-hover:text-gray-400"}`} />
-                <span className={`text-xs tracking-tight line-clamp-2 ${isActive ? "text-white font-medium" : "text-gray-400 group-hover:text-gray-300"}`}>
-                  {chat.title}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between font-mono text-[9px] pl-6 text-gray-600 group-hover:text-gray-500">
-                <span>INDEX // {chat.resumeScore}/10</span>
-                <span>{chat.timestamp}</span>
-              </div>
-            </button>
-          );
-        })}
+                  }`}
+              >
+                {isActive && (
+                  <div className="absolute left-0 top-3 bottom-3 w-[2px] bg-orange-500 rounded-full" />
+                )}
+
+                <div className="flex items-start gap-2.5 overflow-hidden">
+                  <MessageSquare
+                    className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isActive
+                      ? "text-orange-500"
+                      : "text-gray-500 group-hover:text-gray-400"
+                      }`}
+                  />
+                  <span
+                    className={`text-xs tracking-tight line-clamp-2 ${isActive
+                      ? "text-white font-medium"
+                      : "text-gray-400 group-hover:text-gray-300"
+                      }`}
+                  >
+                    {chat.title}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between font-mono text-[9px] pl-6 text-gray-600 group-hover:text-gray-500">
+                  <span>INDEX // {chat.score}/10</span>
+                  <span>{chat.timeAgo}</span>
+                </div>
+              </button>
+            );
+          })
+        ) : (
+          <div className="py-8 text-center text-xs text-gray-500">
+            No previous scans found.
+          </div>
+        )}
       </div>
     </aside>
   );

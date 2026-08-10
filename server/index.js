@@ -1,14 +1,14 @@
 // server/index.js
 import express from 'express'
 import dotenv from 'dotenv'
-dotenv.config()
-
 import cookieParser from 'cookie-parser'
 import cors from 'cors'
 import authRoutes from './routes/authRoutes.js'
 import profileRoutes from './routes/userRoutes.js'
 import { connectDB } from './config/db.js'
 import chatWithBot from './routes/chatWithBotRoutes.js'
+
+dotenv.config()
 
 
 const app = express()

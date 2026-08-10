@@ -24,64 +24,74 @@ const startChat = async (req, res) => {
         .json({ error: "Could not extract text from the PDF." });
     }
 
-    // const response = await resumeReviewFirst(pdfText);
+    const response = await resumeReviewFirst(pdfText);
 
-    // if (!response || response === 0) {
-    //   return res.status(500).json({ error: "AI processing failed." });
-    // }
+    if (!response || response === 0) {
+      return res.status(500).json({ error: "AI processing failed." });
+    }
 
-    // if (response.isResume === false) {
-    //   return res.status(400).json({
-    //     error: response.errorCode || "wrong_resume_error",
-    //     message: "The uploaded document does not appear to be a valid resume.",
-    //   });
-    // }
+    if (response.isResume === false) {
+      return res.status(400).json({
+        error: response.errorCode || "wrong_resume_error",
+        message: "The uploaded document does not 'appear to be a valid resume.",
+      });
+    }
 
-    console.log(pdfText);
+    const safeOriginalName = req.file.originalname.replace(/\s+/g, "_");
+    const fileName = `uploads/${Date.now()}_${safeOriginalName}`;
+    const file = bucket.file(fileName);
 
-    // const safeOriginalName = req.file.originalname.replace(/\s+/g, "_");
-    // const fileName = `uploads/${Date.now()}_${safeOriginalName}`;
-    // const file = bucket.file(fileName);
+    let publicUrl = "";
+    try {
+      publicUrl = await new Promise((resolve, reject) => {
+        const stream = file.createWriteStream({
+          metadata: { contentType: req.file.mimetype },
+        });
 
-    // const publicUrl = await new Promise((resolve, reject) => {
-    //   const stream = file.createWriteStream({
-    //     metadata: { contentType: req.file.mimetype },
-    //   });
+        stream.on("error", (error) => {
+          console.error(`Firebase Storage error:`, error);
+          reject(new Error("Failed to upload file to Firebase"));
+        });
 
-    //   stream.on("error", (error) => {
-    //     console.error(`Firebase Storage error:`, error);
-    //     reject(new Error("Failed to upload file to Firebase"));
-    //   });
+        stream.on("finish", async () => {
+          try {
+            await file.makePublic();
+            const url = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+            resolve(url);
+          } catch (err) {
+            reject(err);
+          }
+        });
 
-    //   stream.on("finish", async () => {
-    //     try {
-    //       await file.makePublic();
-    //       const url = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
-    //       resolve(url);
-    //     } catch (err) {
-    //       reject(err);
-    //     }
-    //   });
-
-    //   stream.end(req.file.buffer);
-    // });
+        stream.end(req.file.buffer);
+      });
+    } catch (firebaseError) {
+      console.error("Firebase upload failed:", firebaseError);
+      return res.status(500).json({ error: "Failed to upload file to cloud storage." });
+    }
 
     const newScan = await ResumeScan.create({
       userId: req.user._id,
-      resumeUrl: "publicUrl",
-      context: "response.context",
-      score: "response.score",
-      highlights: "response.highlights",
-      improvements: "response.improvements",
+      resumeUrl: publicUrl,
+      context: response.context || "No context provided.",
+      score: response.score || 0,
+      highlights: response.highlights || [],
+      improvements: response.improvements || [],
+      title: response.title || "Untitled Resume Scan",
+      role: response.role || "Unknown Role",
+      text: pdfText
     });
 
     return res.status(200).json({
       message: "Successfully analyzed resume",
-      scanId: newScan._id,
-      resumeUrl: "publicUrl",
-      score: "response.score",
-      highlights: "response.highlights",
-      improvements: "response.improvements",
+      id: newScan._id,
+      resumeUrl: publicUrl,
+      score: newScan.score,
+      context: newScan.context,
+      highlights: newScan.highlights,
+      improvements: newScan.improvements,
+      title: newScan.title,
+      role: newScan.role,
     });
   } catch (error) {
     console.error("Server Error in startChat:", error);
@@ -108,7 +118,10 @@ const resumeReviewFirst = async (resumeText) => {
       temperature: 0.3,
     });
 
-    const jsonResponse = JSON.parse(chatCompletion.choices[0].message.content);
+    let content = chatCompletion.choices[0].message.content;
+    content = content.replace(/```json/gi, "").replace(/```/g, "").trim();
+
+    const jsonResponse = JSON.parse(content);
     return jsonResponse;
   } catch (error) {
     console.error("Error during AI resume review:", error);

@@ -16,6 +16,39 @@ const messageSchema = new mongoose.Schema({
   }
 }, { _id: false });
 
+const jobSchema = new mongoose.Schema({
+  role: {
+    type: String,
+    required: true
+  },
+  jobType: {
+    type: String,
+    enum: ['Full-Time', 'Part-Time', 'Contract', 'Internship', 'Other'],
+  },
+  location:{
+    type: 'string',
+  },
+  postedDate:{
+    type: Date,
+  },
+  compnyName:{
+    type: String,
+    require: true
+  },
+  description: {
+    type: String,
+    required: true
+  },
+  link: {
+    type: String,
+    required: true
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: false });
+
 const resumeScanSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -31,6 +64,10 @@ const resumeScanSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  text: {
+    type: String,
+    required: true
+  },
   score: {
     type: Number,
     min: 0,
@@ -43,7 +80,16 @@ const resumeScanSchema = new mongoose.Schema({
   improvements: [{
     type: String
   }],
-  chat: [messageSchema]
+  chat: [messageSchema],
+  jobs: [jobSchema],
+  role: {
+    type: String,
+    required: true
+  },
+  title: {
+    type: String,
+    required: true
+  },
 }, {
   timestamps: true
 });

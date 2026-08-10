@@ -6,4 +6,5 @@ export const ROUTES = {
   ANALYSIS: "/analysis",
   SAVED_JOBS: "/saved-jobs",
   HOME: "/home",
+  DEF: '/'
 };

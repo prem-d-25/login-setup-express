@@ -71,7 +71,7 @@ export const login = async (req, res)=>{
     const accessToken = genrateAccessToken(user._id, user.role)
     const refreshToken = genrateRefreshToken(user._id)
     
-    console.log(refreshToken)
+    console.log("refreshToken")
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true, // Front js can not access this 

@@ -8,8 +8,6 @@ function App() {
   const isInitializing = useAuthStore(state=> state.isInitializing)
   useAuthInit()
 
-  console.log(isInitializing)
-
   if(isInitializing){
     return <Loader/>
   }

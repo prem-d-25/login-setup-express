@@ -31,6 +31,14 @@ function AppRoutes() {
           }
         />
         <Route
+          path={ROUTES.DEF}
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
           path={ROUTES.REGISTER}
           element={
             <PublicRoute>
